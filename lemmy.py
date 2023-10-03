@@ -59,7 +59,7 @@ class Lemmy:
                     url = comm["community"]["actor_id"]
                     self._user_communities.add(url)
             except Exception as err:
-                logger.exception(f"Unable to parse communities for {self.site_url}.", exc_info=err)
+                logger.warning(f"Unable to parse communities for {self.site_url}: {err}")
 
         return self._user_communities
 
@@ -87,7 +87,7 @@ class Lemmy:
                         self._user_communities.add(comm_id)
                         self._println(3, f"> Succesfully subscribed" f" to {url} ({comm_id})")
             except Exception as e:
-                logger.exception(f"API error while subscribing to {url}", exc_info=e)
+                logger.warning(f"API error while subscribing to {url}: {e}")
 
     def resolve_community(self, community: str) -> int | None:
         """resolve a community"""
