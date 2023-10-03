@@ -1,7 +1,8 @@
-import sys
 import argparse
 import configparser
 import json
+import sys
+
 from lemmy import Lemmy
 
 
@@ -19,14 +20,10 @@ def get_config(cfile):
 def get_args():
     parser = argparse.ArgumentParser(
         prog="lemmy_migrate",
-        description=f"Migrate subscribed "
-        f"communities from one account "
-        f"to another",
+        description=f"Migrate subscribed " f"communities from one account " f"to another",
     )
 
-    parser.add_argument(
-        "-c", required=True, help="Path to config file", metavar="<config file>"
-    )
+    parser.add_argument("-c", required=True, help="Path to config file", metavar="<config file>")
     parser.add_argument(
         "-u",
         help="use to update main account subscriptions",
@@ -36,33 +33,22 @@ def get_args():
     parser.add_argument(
         "-e", help="Export main account subscriptions to json", metavar="<export file>"
     )
-    parser.add_argument(
-        "-i", help="Import subscriptions from json file", metavar="<import file>"
-    )
+    parser.add_argument("-i", help="Import subscriptions from json file", metavar="<import file>")
     args = parser.parse_args()
     return args
 
 
 def sync_subscriptions(src_acct: Lemmy, dest_acct: Lemmy, from_backup):
-    print(
-        f"\n[ Subscribing {dest_acct.site_url} to new communities from "
-        f"{src_acct.site_url} ]"
-    )
+    print(f"\n[ Subscribing {dest_acct.site_url} to new communities from " f"{src_acct.site_url} ]")
     print(" Getting list of subscribed communities from the two communities")
     if from_backup:
         src_comms = from_backup
     else:
         src_comms = src_acct.get_communities()
-    print(
-        f" {len(src_comms)} subscribed communities found in the source"
-        f" {src_acct.site_url}"
-    )
+    print(f" {len(src_comms)} subscribed communities found in the source" f" {src_acct.site_url}")
 
     dest_comms = dest_acct.get_communities()
-    print(
-        f" {len(dest_comms)} subscribed communities found in the target"
-        f" {dest_acct.site_url}"
-    )
+    print(f" {len(dest_comms)} subscribed communities found in the target" f" {dest_acct.site_url}")
 
     new_communities = [c for c in src_comms if c not in dest_comms]
 
@@ -101,9 +87,7 @@ def main():
     # source site
     print(f"\n[ Getting Main Account info -" f" {accounts['Main Account']['site']} ]")
     main_lemming = Lemmy(accounts["Main Account"]["site"])
-    main_lemming.login(
-        accounts["Main Account"]["user"], accounts["Main Account"]["password"]
-    )
+    main_lemming.login(accounts["Main Account"]["user"], accounts["Main Account"]["password"])
     accounts.pop("Main Account", None)
 
     # export subscriptions

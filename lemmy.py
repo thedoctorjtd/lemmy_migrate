@@ -1,7 +1,8 @@
 import sys
-import requests
 from time import sleep
 from urllib.parse import urlparse
+
+import requests
 
 
 class Lemmy:
@@ -12,9 +13,7 @@ class Lemmy:
         parsed_url = urlparse(url)
         url_path = parsed_url.netloc if parsed_url.netloc else parsed_url.path
         self.site_url = (
-            urlparse(url_path)
-            ._replace(scheme="https", netloc=url_path, path="")
-            .geturl()
+            urlparse(url_path)._replace(scheme="https", netloc=url_path, path="").geturl()
         )
         self._auth_token = None
         self._user_communities = set()
@@ -31,9 +30,7 @@ class Lemmy:
             )
             self._auth_token = resp.json()["jwt"]
         except Exception as e:
-            self._println(
-                1, f"[ERROR]: login() failed for {user}" f" on {self.site_url}"
-            )
+            self._println(1, f"[ERROR]: login() failed for {user}" f" on {self.site_url}")
             self._println(2, f"-Details: {e}")
             sys.exit(1)
 
@@ -75,18 +72,14 @@ class Lemmy:
                     payload["community_id"] = comm_id
                     self._println(2, f"> Subscribing to {url} ({comm_id})")
                     resp = self._request_it(
-                        f"{self.site_url}/"
-                        f"{self._api_base_url}/"
-                        f"community/follow",
+                        f"{self.site_url}/" f"{self._api_base_url}/" f"community/follow",
                         json=payload,
                         method="POST",
                     )
 
                     if resp.status_code == 200:
                         self._user_communities.add(comm_id)
-                        self._println(
-                            3, f"> Succesfully subscribed" f" to {url} ({comm_id})"
-                        )
+                        self._println(3, f"> Succesfully subscribed" f" to {url} ({comm_id})")
             except Exception as e:
                 print(f"   API error: {e}")
 
