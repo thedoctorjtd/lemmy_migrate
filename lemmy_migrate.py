@@ -1,16 +1,21 @@
 import argparse
 import configparser
 import json
+import logging
+import os
 import sys
+from logging import handlers
 
 from lemmy import Lemmy
+
+logger = logging.getLogger(__name__)
 
 
 def get_config(cfile):
     config = configparser.ConfigParser(interpolation=None)
     read = config.read(cfile)
     if not read:
-        print(f"Could not read config {cfile}!")
+        logger.warning(f"Could not read config {cfile}!")
         sys.exit(1)
 
     accounts = {i: dict(config.items(i)) for i in config.sections()}
@@ -39,21 +44,27 @@ def get_args():
 
 
 def sync_subscriptions(src_acct: Lemmy, dest_acct: Lemmy, from_backup):
-    print(f"\n[ Subscribing {dest_acct.site_url} to new communities from " f"{src_acct.site_url} ]")
-    print(" Getting list of subscribed communities from the two communities")
+    logger.info(
+        f"[ Subscribing {dest_acct.site_url} to new communities from " f"{src_acct.site_url} ]"
+    )
+    logger.info(" Getting list of subscribed communities from the two communities")
     if from_backup:
         src_comms = from_backup
     else:
         src_comms = src_acct.get_communities()
-    print(f" {len(src_comms)} subscribed communities found in the source" f" {src_acct.site_url}")
+    logger.info(
+        f" {len(src_comms)} subscribed communities found in the source" f" {src_acct.site_url}"
+    )
 
     dest_comms = dest_acct.get_communities()
-    print(f" {len(dest_comms)} subscribed communities found in the target" f" {dest_acct.site_url}")
+    logger.info(
+        f" {len(dest_comms)} subscribed communities found in the target" f" {dest_acct.site_url}"
+    )
 
     new_communities = [c for c in src_comms if c not in dest_comms]
 
     if new_communities:
-        print(f" Subscribing to {len(new_communities)} new communities")
+        logger.info(f" Subscribing to {len(new_communities)} new communities")
         dest_acct.subscribe(new_communities)
 
 
@@ -63,9 +74,9 @@ def write_backup(account: Lemmy, output: str) -> None:
         with open(output, "w") as f:
             json.dump({account.site_url: list(comms)}, f, indent=4)
     except Exception as e:
-        print(f"  Error exporting file {output} -- {e}")
+        logger.exception(f"  Error exporting file {output}.", exc_info=e)
     else:
-        print(f"  {len(comms)} Subscriptions backed up to {output}")
+        logger.info(f"  {len(comms)} Subscriptions backed up to {output}.")
 
 
 def read_backup(file: str) -> set | None:
@@ -74,8 +85,10 @@ def read_backup(file: str) -> set | None:
         with open(file, "r") as f:
             data = json.load(f)
             comms = {c for k, v in data.items() for c in v}
-    except Exception:
-        print(f"   Failed to read import list {file}")
+    except Exception as e:
+        logger.exception(f"Failed to read import list {file}.", exc_info=e)
+        logger.info("Check your import list or run again without the import flag.")
+        sys.exit(1)  # exit if import file is bad as to prevent unintended behavior
 
     return comms
 
@@ -85,7 +98,7 @@ def main():
     accounts = get_config(cfg.c)
 
     # source site
-    print(f"\n[ Getting Main Account info -" f" {accounts['Main Account']['site']} ]")
+    logger.info(f"[ Getting Main Account info -" f" {accounts['Main Account']['site']} ]")
     main_lemming = Lemmy(accounts["Main Account"]["site"])
     main_lemming.login(accounts["Main Account"]["user"], accounts["Main Account"]["password"])
     accounts.pop("Main Account", None)
@@ -102,12 +115,12 @@ def main():
 
     # sync main account communities to each account
     for acc in accounts:
-        print(f"\n[ Getting {acc} - {accounts[acc]['site']} ]")
+        logger.info(f"[ Getting {acc} - {accounts[acc]['site']} ]")
         new_lemming = Lemmy(accounts[acc]["site"])
         new_lemming.login(accounts[acc]["user"], accounts[acc]["password"])
 
         if cfg.u:
-            print(" Update main flag set. Updating main account subscriptions")
+            logger.info(" Update main flag set. Updating main account subscriptions.")
             src = new_lemming
             dest = main_lemming
         else:
@@ -118,4 +131,17 @@ def main():
 
 
 if __name__ == "__main__":
+    fileDir = os.path.dirname(os.path.realpath(__file__))
+    logFile = os.path.join(fileDir, "lemmy_migrate.log")
+
+    fHandler = handlers.RotatingFileHandler(
+        logFile, encoding="utf-8", maxBytes=5000000, backupCount=1
+    )
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        handlers=[fHandler, logging.StreamHandler()],
+        force=True,
+    )
+    logger.info("Starting Lemmy Migrate")
     main()

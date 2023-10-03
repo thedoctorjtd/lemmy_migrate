@@ -4,6 +4,9 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import requests
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Lemmy:
@@ -54,7 +57,7 @@ class Lemmy:
                     url = comm["community"]["actor_id"]
                     self._user_communities.add(url)
             except Exception as err:
-                print(f"error: {err}")
+                logger.exception(f"Unable to parse communities for {self.site_url}.", exc_info=err)
 
         return self._user_communities
 
@@ -82,7 +85,7 @@ class Lemmy:
                         self._user_communities.add(comm_id)
                         self._println(3, f"> Succesfully subscribed" f" to {url} ({comm_id})")
             except Exception as e:
-                print(f"   API error: {e}")
+                logger.exception(f"API error while subscribing to {url}", exc_info=e)
 
     def resolve_community(self, community: str) -> int | None:
         """resolve a community"""
@@ -139,4 +142,4 @@ class Lemmy:
             raise
 
     def _println(self, indent, line):
-        print(f"{' ' * indent}{line}")
+        logger.info(f"{' ' * indent}{line}")
